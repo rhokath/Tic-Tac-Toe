@@ -23,47 +23,33 @@ function Square(props){
 }
   
   class Board extends React.Component {
-    constructor(props){
-      super(props);
-      this.state = {
-        squares: Array(9).fill(null),
-        xIsNext: true,
-      }
-    }
-    handleClick(i){
-      //call .slice to create a copy of the squares array to modify instead of exsiting array
-      const squares = this.state.squares.slice()
-      //ignore a click if someone has won the game or if the square has already been clicked
-      if(calculateWinner(squares)|| squares[i]){
-        return
-      }
-      squares[i] = this.state.xIsNext ? 'X': 'O';
-      this.setState({
-        squares: squares,
-        xIsNext: !this.state.xIsNext,
-      })
-    }
+    // handleClick(i){
+    //   //call .slice to create a copy of the squares array to modify instead of exsiting array
+    //   const squares = this.state.squares.slice()
+    //   //ignore a click if someone has won the game or if the square has already been clicked
+    //   if(calculateWinner(squares)|| squares[i]){
+    //     return
+    //   }
+    //   squares[i] = this.state.xIsNext ? 'X': 'O';
+    //   this.setState({
+    //     squares: squares,
+    //     xIsNext: !this.state.xIsNext,
+    //   })
+    // }
     renderSquare(i) {
       return (
       <Square 
-      value={this.state.squares[i]}
-      onClick={() => this.handleClick(i)}
+      value={this.props.squares[i]}
+      onClick={() => this.props.onClick(i)}
       />
       );
     }
   
     render() {
-      const winner = calculateWinner(this.state.squares)
-      let status;
-      // const status = 'Next player: ' +(this.state.xIsNext ? 'X': 'O');
-      if(winner){
-        status = 'Winner: ' + winner
-      }else{
-        status = 'Next player: ' +(this.state.xIsNext ? 'X': 'O');
-      }
+  
       return (
         <div>
-          <div className="status">{status}</div>
+          
           <div className="board-row">
             {this.renderSquare(0)}
             {this.renderSquare(1)}
@@ -85,15 +71,84 @@ function Square(props){
   }
   
   class Game extends React.Component {
+    constructor(props){
+      super(props);
+      this.state = {
+        history: [{
+          squares: Array(9).fill(null),
+        }],
+        xIsNext: true,
+        stepNumber: 0,
+      }
+    }
+    handleClick(i){
+      //call .slice to create a copy of the squares array to modify instead of exsiting array
+      const history = this.state.history.slice(0, this.state.stepNumber + 1);
+      const current = history[history.length - 1];
+      const squares = current.squares.slice();
+      if(calculateWinner(squares) || squares[i]){
+        return
+      }
+      squares[i] = this.state.xIsNext ? "X": "O";
+      //prefer concat over push because it doesn't mutate original array
+      this.setState({
+        history: history.concat([{
+          squares: squares,
+        }]),
+        xIsNext: !this.state.xIsNext,
+      })
+    
+    }
+    jumpTo(step){
+      this.setState({
+        stepNumber: step,
+        xIsNext: (step % 2) === 0,
+      })
+    }
+    renderSquare(i) {
+      return (
+      <Square 
+      value={this.props.squares[i]}
+      onClick={() => this.props.onClick(i)}
+      />
+      );
+    }
     render() {
+      const history = this.state.history;
+      const current = history[this.state.stepNumber];
+      const winner = calculateWinner(current.squares);
+      //when we render a list React stores some info about each rendered list item
+      //when we update a list, React needs to determin what has changed. we could have added, removed, re-arranged or updated lists item
+      //keys tell React about the identity of each component which allows React to
+      //maintain state between re-renders
+      //keys don't need to be globally unique, they only need to be unique between components and their siblings
+      const moves = history.map((step, move)=> {
+        const desc = move ?
+        "Go to move #" + move :
+        "Go to game start";
+        return(
+          <li key={move}>
+            <button onClick={() => this.jumpTo(move)}>{desc}</button>
+          </li>
+        )
+      })
+      let status;
+      if(winner){
+        status = "Winner: "+ winner;
+      }else{
+        status = "Next player: " + (this.state.xIsNext ? "X": "O")
+      }
       return (
         <div className="game">
           <div className="game-board">
-            <Board />
+            <Board
+            squares={current.squares}
+            onClick={(i) => this.handleClick(i)}
+            />
           </div>
           <div className="game-info">
-            <div>{/* status */}</div>
-            <ol>{/* TODO */}</ol>
+            <div>{status}</div>
+            <ol>{moves}</ol>
           </div>
         </div>
       );
